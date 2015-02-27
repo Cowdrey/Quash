@@ -25,6 +25,8 @@ int main()
 		char testStr[PATH_MAX +1]; 
 		getcwd(testStr, PATH_MAX +1);
         std::cout << "[" << testStr << "]"<< "$ ";
+		//delete testStr;
+
         char input[2097152];
         
         fgets(input, 2097152, stdin);
