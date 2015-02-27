@@ -20,15 +20,26 @@ int pipefd1[2];
 
 int main()
 {
-    
+	bool redirected = false;
+
+	if(!isatty(STDIN_FILENO)) //A file has been redirected to stdin
+	{
+		redirected = true;
+	}
+	
     while(true)
     {
-		char testStr[PATH_MAX +1]; 
-		getcwd(testStr, PATH_MAX +1);
-        std::cout << "[" << testStr << "]"<< "$ ";
+		if(!redirected)
+		{
+			char testStr[PATH_MAX +1]; 
+			getcwd(testStr, PATH_MAX +1);
+        	std::cout << "[" << testStr << "]"<< "$ ";
+		}
+
         char input[2097152];
         
-        fgets(input, 2097152, stdin);
+        if(fgets(input, 2097152, stdin) == NULL)
+			break;
         
         char* args[100];
         int i = 0;
