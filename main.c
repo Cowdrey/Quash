@@ -84,7 +84,7 @@ int main()
             }
 		
         }
-		else if(!strcmp(args[0], "q"))
+		else if((!strcmp(args[0], "quit")) || (!strcmp(args[0], "exit")))
 		{
 			break;
 		}
