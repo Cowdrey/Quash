@@ -10,6 +10,7 @@
 #include <cstring>
 #include <sys/types.h>
 #include <pwd.h>
+#include <fcntl.h>
 
 
 int status;
@@ -33,13 +34,37 @@ int main()
         int i = 0;
         char* tempArg = strtok(input, " \n");
         int numOfArgs;
-        
+		char* inputFrom;
+		char* outputTo;
         
         while(tempArg)
         {
-            args[i++] = tempArg;
+			if(!strcmp(tempArg, ">"))
+			{
+				outputTo = strtok(NULL, " \n");
+				if(outputTo == NULL)
+				{
+					std::cout << "Error! No output file specified!" << std::endl;
+					exit(0);
+				}
+			}
+			else if(!strcmp(tempArg, "<"))
+			{
+				inputFrom = strtok(NULL, " \n");
+				if(inputFrom == NULL)
+				{
+					std::cout << "Error! No input file specified!" << std::endl;
+					exit(0);
+				}
+			}
+			else
+			{
+            	args[i++] = tempArg;
+			}
+			
             tempArg = strtok(NULL, " \n");
         }
+
         numOfArgs = (i -1);
         
         if(!strcmp(args[0],"cd"))
@@ -55,8 +80,7 @@ int main()
             else if(numOfArgs == 1)
             {
                 dirToEnter = args[1];
-            	chdir (dirToEnter);
-				
+            	chdir (dirToEnter);	
             }
 		
         }
@@ -66,8 +90,6 @@ int main()
 		}
 		else
 		{
-			
-			
 			if(pipe(pipefd1) == -1)
 			{
 				perror("pipe1");
@@ -80,6 +102,37 @@ int main()
 			{
 				close(pipefd1[0]);
 				close(pipefd1[1]);
+
+				int inFile;
+				bool inFileUsed = false;
+				int outFile;
+				bool outFileUsed = false;
+
+				if(inputFrom != NULL) //Input file specified, redirect
+				{
+					inFileUsed = true;
+					inFile = open(inputFrom, O_RDONLY | O_CREAT);
+					if(inFile < 0)
+					{
+						std::cout << "Error opening " << inputFrom << "." << std::endl;
+						exit(0);
+					}
+					
+					dup2(inFile, STDIN_FILENO);
+				}
+				
+				if(outputTo != NULL) //Output file specified, redirect
+				{
+					outFileUsed = true;
+					outFile = open(outputTo, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+					if(outFile < 0)
+					{
+						std::cout << "Error opening " << outputTo << "." << std::endl;
+						exit(0);
+					}
+
+					dup2(outFile, STDOUT_FILENO);
+				}
 
 				if(access(args[0], F_OK) == 0) //In cur directory
 				{
@@ -116,6 +169,15 @@ int main()
 					}
 				}
 
+				if(inFileUsed)
+				{
+					close(inFile);
+				}
+				if(outFileUsed)
+				{
+					close(outFile);
+				}
+
 				exit(0);
 			}
 
@@ -126,13 +188,15 @@ int main()
 				fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
 				return EXIT_FAILURE;
 			}
-
+			
 		}
 		int j = 0;
 		while(args[j] != NULL)
 		{
 			args[j++] = NULL;
 		}
+		inputFrom = NULL;
+		outputTo = NULL;
     }
     
 }
