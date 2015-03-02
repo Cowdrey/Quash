@@ -56,7 +56,7 @@ int main()
     
     while(true)
     {
-        if(!redirected)
+		if(!redirected)
         {
             char testStr[PATH_MAX +1];
             getcwd(testStr, PATH_MAX +1);
@@ -66,18 +66,22 @@ int main()
         char input[2097152];
         
         if(fgets(input, 2097152, stdin) == NULL)
-        break;
+		{
+        	break;
+		}
         
         char* args[100];
         int i = 0;
         char* tempArg = strtok(input, " \n");
         int numOfArgs;
-        char* inputFrom = NULL;
-        char* outputTo = NULL;
-        
+
+		char* inputFrom = NULL;
+		int savedInput = dup(STDIN_FILENO);
+		char* outputTo = NULL;
+		int savedOutput = dup(STDOUT_FILENO);
         
         while(tempArg)
-	{
+        {
             if(!strcmp(tempArg, ">"))
             {
                 outputTo = strtok(NULL, " \n");
@@ -104,6 +108,37 @@ int main()
             tempArg = strtok(NULL, " \n");
         }
 
+		int inFile;
+		bool inFileUsed = false;
+		int outFile;
+		bool outFileUsed = false;
+
+		if(inputFrom != NULL) //Input file specified, redirect
+		{
+			inFileUsed = true;
+			inFile = open(inputFrom, O_RDONLY | O_CREAT);
+			if(inFile < 0)
+			{
+				std::cout << "Error opening " << inputFrom << "." << std::endl;
+				exit(0);
+			}
+			
+			dup2(inFile, STDIN_FILENO);
+		}
+		
+		if(outputTo != NULL) //Output file specified, redirect
+		{
+			outFileUsed = true;
+			outFile = open(outputTo, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+			if(outFile < 0)
+			{
+				std::cout << "Error opening " << outputTo << "." << std::endl;
+				exit(0);
+			}
+
+			dup2(outFile, STDOUT_FILENO);
+		}
+
         numOfArgs = (i -1);
         
         if(!strcmp(args[0],"cd"))
@@ -120,18 +155,16 @@ int main()
                 dirToEnter = args[1];
             	chdir (dirToEnter);	
             }
-		
         }
         else if(!strcmp(args[0], "set"))
         {
             char* tokenizer = strtok(args[1], "=");
             char *dirToSet = getenv(tokenizer);
-	    strcpy(dirToSet,strtok(NULL, "="));
+	    	strcpy(dirToSet,strtok(NULL, "="));
         } 
         else if(!strcmp(args[0], "jobs"))
         {
-            //char *dirToSet = getenv(tokenizer);
-	    //strcpy(dirToSet,strtok(NULL, "="));
+        
         }       
         else if((!strcmp(args[0], "quit")) || (!strcmp(args[0], "exit")))
         {
@@ -152,37 +185,6 @@ int main()
             
                 close(pipefd1[0]);
                 close(pipefd1[1]);
-                
-                int inFile;
-                bool inFileUsed = false;
-                int outFile;
-                bool outFileUsed = false;
-                
-                if(inputFrom != NULL) //Input file specified, redirect
-                {
-                    inFileUsed = true;
-                    inFile = open(inputFrom, O_RDONLY | O_CREAT);
-                    if(inFile < 0)
-                    {
-                        std::cout << "Error opening " << inputFrom << "." << std::endl;
-                        exit(0);
-                    }
-                    
-                    dup2(inFile, STDIN_FILENO);
-                }
-                
-                if(outputTo != NULL) //Output file specified, redirect
-                {
-                    outFileUsed = true;
-                    outFile = open(outputTo, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-                    if(outFile < 0)
-                    {
-                        std::cout << "Error opening " << outputTo << "." << std::endl;
-                        exit(0);
-                    }
-                    
-                    dup2(outFile, STDOUT_FILENO);
-                }
                 
                 if(access(args[0], F_OK) == 0) //In cur directory
                 {
@@ -219,17 +221,6 @@ int main()
                     }
                 }
                 
-                if(inFileUsed)
-                {
-                    close(inFile);
-		    inputFrom = NULL;
-                }
-                if(outFileUsed)
-                {
-                    close(outFile);
-		    outputTo = NULL;
-                }
-                
                 exit(0);
             }
             
@@ -242,13 +233,28 @@ int main()
             }
             
         }
-        int j = 0;
-        while(args[j] != NULL)
-        {
-            args[j++] = NULL;
-        }
-	inputFrom = NULL;
-        outputTo = NULL;
-    }
+
+		if(inFileUsed)
+		{
+			dup2(savedInput ,STDIN_FILENO);
+			close(inFile);
+			inputFrom = NULL;
+		}
+		if(outFileUsed)
+		{
+			dup2(savedOutput, STDOUT_FILENO);
+			close(outFile);
+			outputTo = NULL;
+		}
+		
+		close(savedInput);
+		close(savedOutput);
+		int j = 0;
+		while(args[j] != NULL)
+		{
+			args[j++] = NULL;
+		}
+	}
     
 }
+
