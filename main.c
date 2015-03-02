@@ -82,6 +82,9 @@ int main()
         	break;
 		}
 
+		//Check if ends in &
+		//Tokenize by &
+		//If
 		if(input[strlen(input)-2] == '&')
 		{
             pidbg = fork();
