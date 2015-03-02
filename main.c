@@ -13,17 +13,17 @@
 
 struct link {
   struct link *next = NULL;
-  int data;
+  int pid;
   int jobid;
 };
 
-int insert_link(struct link *anchor,struct link *newlink) 
+void insert_link(struct link *anchor,struct link *newlink) 
 {
   newlink->next = anchor->next;
   anchor->next = new struct link;
 }
 
-int remove_link(struct link *anchor) 
+void remove_link(struct link *anchor) 
 {
 	if(anchor->next == NULL)
 	{
@@ -33,16 +33,28 @@ int remove_link(struct link *anchor)
 	else
 	{
 		anchor->next == anchor->next->next;
-		anchor->data == anchor->next->data;
+		anchor->pid == anchor->next->pid;
 		anchor->jobid == anchor->next->jobid;
+		delete anchor->next;
 	}
+}
+struct link *ProcessHead = NULL;
+
+bool isBackground(int thisPid)
+{
+	for(struct link *iter = ProcessHead; iter != NULL; iter = iter->next) {
+    	if(iter->pid == thisPid)
+    	{
+    		return true;
+    	}
+    }
+    return false;
 }
 
 int status;
 pid_t pid_1;
 
 int pipefd1[2];
-struct link *ProcessHead = NULL;
 
 int main()
 {
