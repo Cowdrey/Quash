@@ -50,7 +50,7 @@ int main()
 		int savedInput = dup(STDIN_FILENO);
 		char* outputTo = NULL;
 		int savedOutput = dup(STDOUT_FILENO);
-
+        
         while(tempArg)
         {
             if(!strcmp(tempArg, ">"))
@@ -128,19 +128,26 @@ int main()
             }
 		
         }
-<<<<<<< HEAD
-		else if(!strcmp(args[0], "set"))
+        else if(!strcmp(args[0], "set"))
         {
             char* tokenizer = strtok(args[1], "=");
             char *dirToSet = getenv(tokenizer);
 	    	strcpy(dirToSet,strtok(NULL, "="));
-        }  
-		else if((!strcmp(args[0], "quit")) || (!strcmp(args[0], "exit")))
+        }       
+        else if((!strcmp(args[0], "quit")) || (!strcmp(args[0], "exit")))
         {
             break;
         }
-        else
-		{     
+		else
+		{
+			if(pipe(pipefd1) == -1)
+			{
+				perror("pipe1");
+				exit(EXIT_FAILURE);
+			}
+
+			pid_1 = fork();
+
 			if(pid_1 == 0)
 			{
 				close(pipefd1[0]);
