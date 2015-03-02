@@ -3,7 +3,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <strings.h>
 #include <errno.h>
 #include <sys/wait.h>
 #include <iostream>
@@ -68,6 +67,11 @@ int main()
         if(fgets(input, 2097152, stdin) == NULL)
 		{
         	break;
+		}
+
+		if(input[strlen(input)-2] == '&')
+		{
+			
 		}
         
         char* args[100];
