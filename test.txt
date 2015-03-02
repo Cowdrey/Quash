@@ -1,8 +1,8 @@
 main.c
+main.c~
 makefile
 quash
 Quash
 README.md
 testInput.txt
-testInput.txt~
 test.txt
