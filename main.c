@@ -20,61 +20,62 @@ int pipefd1[2];
 
 int main()
 {
-	bool redirected = false;
-
-	if(!isatty(STDIN_FILENO)) //A file has been redirected to stdin
-	{
-		redirected = true;
-	}
-	
+    bool redirected = false;
+    
+    if(!isatty(STDIN_FILENO)) //A file has been redirected to stdin
+    {
+        redirected = true;
+    }
+    
     while(true)
     {
-		if(!redirected)
-		{
-			char testStr[PATH_MAX +1]; 
-			getcwd(testStr, PATH_MAX +1);
-        	std::cout << "[" << testStr << "]"<< "$ ";
-		}
+        if(!redirected)
+        {
+            char testStr[PATH_MAX +1];
+            getcwd(testStr, PATH_MAX +1);
+            std::cout << "[" << testStr << "]"<< "$ ";
+        }
 
         char input[2097152];
         
         if(fgets(input, 2097152, stdin) == NULL)
-			break;
+        break;
         
         char* args[100];
         int i = 0;
         char* tempArg = strtok(input, " \n");
         int numOfArgs;
+
 		char* inputFrom = NULL;
 		int savedInput = dup(STDIN_FILENO);
 		char* outputTo = NULL;
 		int savedOutput = dup(STDOUT_FILENO);
-        
+
         while(tempArg)
         {
-			if(!strcmp(tempArg, ">"))
-			{
-				outputTo = strtok(NULL, " \n");
-				if(outputTo == NULL)
-				{
-					std::cout << "Error! No output file specified!" << std::endl;
-					exit(0);
-				}
-			}
-			else if(!strcmp(tempArg, "<"))
-			{
-				inputFrom = strtok(NULL, " \n");
-				if(inputFrom == NULL)
-				{
-					std::cout << "Error! No input file specified!" << std::endl;
-					exit(0);
-				}
-			}
-			else
-			{
-            	args[i++] = tempArg;
-			}
-			
+            if(!strcmp(tempArg, ">"))
+            {
+                outputTo = strtok(NULL, " \n");
+                if(outputTo == NULL)
+                {
+                    std::cout << "Error! No output file specified!" << std::endl;
+                    exit(0);
+                }
+            }
+            else if(!strcmp(tempArg, "<"))
+            {
+                inputFrom = strtok(NULL, " \n");
+                if(inputFrom == NULL)
+                {
+                    std::cout << "Error! No input file specified!" << std::endl;
+                    exit(0);
+                }
+            }
+            else
+            {
+                args[i++] = tempArg;
+            }
+            
             tempArg = strtok(NULL, " \n");
         }
 
@@ -113,13 +114,12 @@ int main()
         
         if(!strcmp(args[0],"cd"))
         {
-			
             char *dirToEnter;
             if(numOfArgs == 0)
             {
 
                 dirToEnter = getenv("HOME");
-		        chdir (dirToEnter);
+                chdir (dirToEnter);
             }
             else if(numOfArgs == 1)
             {
@@ -128,20 +128,19 @@ int main()
             }
 		
         }
+<<<<<<< HEAD
+		else if(!strcmp(args[0], "set"))
+        {
+            char* tokenizer = strtok(args[1], "=");
+            char *dirToSet = getenv(tokenizer);
+	    	strcpy(dirToSet,strtok(NULL, "="));
+        }  
 		else if((!strcmp(args[0], "quit")) || (!strcmp(args[0], "exit")))
-		{
-			break;
-		}
-		else
-		{
-			if(pipe(pipefd1) == -1)
-			{
-				perror("pipe1");
-				exit(EXIT_FAILURE);
-			}
-
-			pid_1 = fork();
-
+        {
+            break;
+        }
+        else
+		{     
 			if(pid_1 == 0)
 			{
 				close(pipefd1[0]);
@@ -181,21 +180,6 @@ int main()
 				    	std::cout << "Error! Executable " << args[0] << " is not in current directory or path." << std::endl;
 					}
 				}
-
-				/*if(inFileUsed)
-				{
-					inFileUsed = false;
-					dup2(STDIN_FILENO, inFile);
-					close(inFile);
-					inputFrom = NULL;
-				}
-				if(outFileUsed)
-				{
-					outFileUsed = false;
-					dup2(STDOUT_FILENO, outFile);
-					close(outFile);
-					outputTo = NULL;
-				}*/
 
 				exit(0);
 			}
