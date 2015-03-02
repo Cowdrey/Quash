@@ -85,9 +85,9 @@ int main()
 		if(input[strlen(input)-2] == '&')
 		{
             pidbg = fork();
+
 			if(pidbg != 0)
 			{
-				std::cout << "Work" << std::endl;
 				redirected = false;
 				continue;
 			}
