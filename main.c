@@ -46,7 +46,9 @@ int main()
         char* tempArg = strtok(input, " \n");
         int numOfArgs;
 		char* inputFrom = NULL;
+		int savedInput = dup(STDIN_FILENO);
 		char* outputTo = NULL;
+		int savedOutput = dup(STDOUT_FILENO);
         
         while(tempArg)
         {
@@ -75,6 +77,37 @@ int main()
 			
             tempArg = strtok(NULL, " \n");
         }
+
+		int inFile;
+		bool inFileUsed = false;
+		int outFile;
+		bool outFileUsed = false;
+
+		if(inputFrom != NULL) //Input file specified, redirect
+		{
+			inFileUsed = true;
+			inFile = open(inputFrom, O_RDONLY | O_CREAT);
+			if(inFile < 0)
+			{
+				std::cout << "Error opening " << inputFrom << "." << std::endl;
+				exit(0);
+			}
+			
+			dup2(inFile, STDIN_FILENO);
+		}
+		
+		if(outputTo != NULL) //Output file specified, redirect
+		{
+			outFileUsed = true;
+			outFile = open(outputTo, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+			if(outFile < 0)
+			{
+				std::cout << "Error opening " << outputTo << "." << std::endl;
+				exit(0);
+			}
+
+			dup2(outFile, STDOUT_FILENO);
+		}
 
         numOfArgs = (i -1);
         
@@ -114,37 +147,6 @@ int main()
 				close(pipefd1[0]);
 				close(pipefd1[1]);
 
-				int inFile;
-				bool inFileUsed = false;
-				int outFile;
-				bool outFileUsed = false;
-
-				if(inputFrom != NULL) //Input file specified, redirect
-				{
-					inFileUsed = true;
-					inFile = open(inputFrom, O_RDONLY | O_CREAT);
-					if(inFile < 0)
-					{
-						std::cout << "Error opening " << inputFrom << "." << std::endl;
-						exit(0);
-					}
-					
-					dup2(inFile, STDIN_FILENO);
-				}
-				
-				if(outputTo != NULL) //Output file specified, redirect
-				{
-					outFileUsed = true;
-					outFile = open(outputTo, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-					if(outFile < 0)
-					{
-						std::cout << "Error opening " << outputTo << "." << std::endl;
-						exit(0);
-					}
-
-					dup2(outFile, STDOUT_FILENO);
-				}
-
 				if(access(args[0], F_OK) == 0) //In cur directory
 				{
 				    execvpe(args[0], args, environ);
@@ -180,16 +182,20 @@ int main()
 					}
 				}
 
-				if(inFileUsed)
+				/*if(inFileUsed)
 				{
+					inFileUsed = false;
+					dup2(STDIN_FILENO, inFile);
 					close(inFile);
 					inputFrom = NULL;
 				}
 				if(outFileUsed)
 				{
-					outputTo = NULL;
+					outFileUsed = false;
+					dup2(STDOUT_FILENO, outFile);
 					close(outFile);
-				}
+					outputTo = NULL;
+				}*/
 
 				exit(0);
 			}
@@ -203,13 +209,28 @@ int main()
 			}
 			
 		}
+
+		if(inFileUsed)
+		{
+			dup2(savedInput ,STDIN_FILENO);
+			close(inFile);
+			inputFrom = NULL;
+		}
+		if(outFileUsed)
+		{
+			dup2(savedOutput, STDOUT_FILENO);
+			close(outFile);
+			outputTo = NULL;
+		}
+		
+		close(savedInput);
+		close(savedOutput);
 		int j = 0;
 		while(args[j] != NULL)
 		{
 			args[j++] = NULL;
 		}
-		inputFrom = NULL;
-		outputTo = NULL;
     }
     
 }
+
