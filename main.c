@@ -45,8 +45,8 @@ int main()
         int i = 0;
         char* tempArg = strtok(input, " \n");
         int numOfArgs;
-		char* inputFrom;
-		char* outputTo;
+		char* inputFrom = NULL;
+		char* outputTo = NULL;
         
         while(tempArg)
         {
@@ -183,9 +183,11 @@ int main()
 				if(inFileUsed)
 				{
 					close(inFile);
+					inputFrom = NULL;
 				}
 				if(outFileUsed)
 				{
+					outputTo = NULL;
 					close(outFile);
 				}
 
