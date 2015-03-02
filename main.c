@@ -39,7 +39,9 @@ int main()
         char input[2097152];
         
         if(fgets(input, 2097152, stdin) == NULL)
-        break;
+		{
+        	break;
+		}
         
         char* args[100];
         int i = 0;
