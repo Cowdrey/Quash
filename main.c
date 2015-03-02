@@ -17,10 +17,9 @@ struct link {
   int jobid;
 };
 
-void insert_link(struct link *anchor,struct link *newlink) 
+void insert_link(struct link *newlink) 
 {
-  newlink->next = anchor->next;
-  anchor->next = new struct link;
+  ProcessTail->next = newlink;
 }
 
 void remove_link(struct link *anchor) 
@@ -39,6 +38,7 @@ void remove_link(struct link *anchor)
 	}
 }
 struct link *ProcessHead = NULL;
+struct link *ProcessTail = ProcessHead;
 
 bool isBackground(int thisPid)
 {
@@ -68,6 +68,7 @@ int main()
     
     while(!backproc)
     {
+    	struct link* newProc;
 		if(!redirected)
         {
             char testStr[PATH_MAX +1];
@@ -92,6 +93,9 @@ int main()
 				continue;
 			}
 			backproc = true;
+			newProc = (struct link*) alloc(sizeof(struct link));
+			insert_link
+			
 		}
 
 		char* args[100];
