@@ -52,9 +52,10 @@ bool isBackground(int thisPid)
 }
 
 int status;
-pid_t pid_1;
+pid_t pid_1, pidbg;
 
 int pipefd1[2];
+bool backproc = false;
 
 int main()
 {
@@ -65,7 +66,7 @@ int main()
         redirected = true;
     }
     
-    while(true)
+    while(!backproc)
     {
 		if(!redirected)
         {
@@ -83,46 +84,53 @@ int main()
 
 		if(input[strlen(input)-2] == '&')
 		{
-			
+            pidbg = fork();
+			if(pidbg != 0)
+			{
+				std::cout << "Work" << std::endl;
+				redirected = false;
+				continue;
+			}
+			backproc = true;
 		}
-        
-        char* args[100];
-        int i = 0;
-        char* tempArg = strtok(input, " \n");
-        int numOfArgs;
 
-		char* inputFrom = NULL;
+		char* args[100];
+		int i = 0;
+		char* tempArg = strtok(input, " &\n");
+		int numOfArgs;
+
+		char* inputFrom = NULL;	
 		int savedInput = dup(STDIN_FILENO);
 		char* outputTo = NULL;
 		int savedOutput = dup(STDOUT_FILENO);
-        
-        while(tempArg)
-        {
-            if(!strcmp(tempArg, ">"))
-            {
-                outputTo = strtok(NULL, " \n");
-                if(outputTo == NULL)
-                {
-                    std::cout << "Error! No output file specified!" << std::endl;
-                    exit(0);
-                }
-            }
-            else if(!strcmp(tempArg, "<"))
-            {
-                inputFrom = strtok(NULL, " \n");
-                if(inputFrom == NULL)
-                {
-                    std::cout << "Error! No input file specified!" << std::endl;
-                    exit(0);
-                }
-            }
-            else
-            {
-                args[i++] = tempArg;
-            }
-            
-            tempArg = strtok(NULL, " \n");
-        }
+    
+	    while(tempArg)
+	    {
+	        if(!strcmp(tempArg, ">"))
+	        {
+	            outputTo = strtok(NULL, " &\n");
+	            if(outputTo == NULL)
+	            {
+	                std::cout << "Error! No output file specified!" << std::endl;
+	                exit(0);
+	            }
+	        }
+	        else if(!strcmp(tempArg, "<"))
+	        {
+	            inputFrom = strtok(NULL, " &\n");
+	            if(inputFrom == NULL)
+	            {
+	                std::cout << "Error! No input file specified!" << std::endl;
+	                exit(0);
+	            }
+	        }
+	        else
+	        {
+	            args[i++] = tempArg;
+	        }
+	        
+	        tempArg = strtok(NULL, " &\n");
+	    }
 
 		int inFile;
 		bool inFileUsed = false;
@@ -242,12 +250,11 @@ int main()
             
             close(pipefd1[0]);
             close(pipefd1[1]);
-            
-            if ((waitpid(pid_1, &status, 0)) == -1) {
-                fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
-                return EXIT_FAILURE;
-            }
-            
+      
+        	if ((waitpid(pid_1, &status, 0)) == -1) {
+            	fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
+            	return EXIT_FAILURE;
+        	} 
         }
 
 		if(inFileUsed)
