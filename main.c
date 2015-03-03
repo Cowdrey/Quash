@@ -20,12 +20,33 @@ struct link {
 
 struct link *ProcessHead = NULL;
 struct link *ProcessTail = ProcessHead;
+int jobidvar = 0;
 
 void insert_link(struct link *newlink) 
 {
-  ProcessTail->next = newlink;
+	if(ProcessHead == NULL)
+	{
+		ProcessHead = newlink;
+		ProcessTail = newlink;
+	}
+	else
+	{
+  		ProcessTail->next = newlink;
+  		ProcessTail = ProcessTail->next;
+	}
 }
 
+struct link * get_link(int pidp) 
+{
+  	for(struct link *iter = ProcessHead; iter != NULL; iter = iter->next) {
+    	if(iter->pid == pidp)
+    	{
+    		return iter;
+    	}
+    }
+    return NULL;
+}
+ 
 void remove_link(struct link *anchor) 
 {
 	if(anchor->next == NULL)
@@ -70,7 +91,7 @@ int main()
     
     while(!backproc)
     {
-    	struct link* newProc;
+    	struct link* newProc =NULL;
 		if(!redirected)
         {
             char testStr[PATH_MAX +1];
@@ -87,16 +108,26 @@ int main()
 
 		if(input[strlen(input)-2] == '&')
 		{
+			newProc = (struct link*) malloc(sizeof(struct link));
+			newProc->next = NULL;
+			newProc->pid = getpid();
+			newProc->jobid = jobidvar;
+			std::cout << "[" << newProc->jobid << "]"<< newProc->pid << " running in background\n";
+			insert_link(newProc);
+			jobidvar++;
             pidbg = fork();
 
-			if(pidbg != 0)
+			if(pidbg == 0)
+			{
+			backproc = true;
+
+			}
+        	else
 			{
 				redirected = false;
 				continue;
 			}
-			backproc = true;
-			newProc = (struct link*) malloc(sizeof(struct link));
-			insert_link(newProc);
+			
 			
 		}
 
@@ -284,6 +315,13 @@ int main()
 			args[j++] = NULL;
 		}
 	}
+	if(backproc)
+	{
+		int mypid= getpid();
+		struct link * proclink = get_link(mypid);
+		std::cout << "[" << proclink->jobid << "]"<< proclink->pid << " finished COMMAND\n";
+	
+	}
+	
     
 }
-
