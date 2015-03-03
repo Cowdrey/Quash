@@ -85,27 +85,65 @@ int main()
         	break;
 		}
 
+		bool lastBackProc = false;
 		//Check if ends in &
-		//Tokenize by &
-		//If
 		if(input[strlen(input)-2] == '&')
 		{
-            pidbg = fork();
+			lastBackProc = true;
+		}
 
-			if(pidbg != 0)
+		bool contiBool = false;
+
+		char* tempProc = strtok(input, "&");
+		
+		while(tempProc)
+		{
+			char* nextProc = strtok(NULL, "&");
+
+			if(nextProc == NULL)
 			{
-				redirected = false;
-				continue;
+				if(lastBackProc)
+				{
+					pidbg = fork();
+
+					if(pidbg != 0)
+					{
+						redirected = false;
+						lastBackProc = false;
+						contiBool = true;
+						break;
+					}
+					backproc = true;
+					//newProc = (struct link*) malloc(sizeof(struct link));
+					//insert_link(newProc);
+				}
 			}
-			backproc = true;
-			newProc = (struct link*) malloc(sizeof(struct link));
-			insert_link(newProc);
-			
+			else
+			{
+				pidbg = fork();
+
+				if(pidbg != 0)
+				{
+					tempProc = nextProc;
+					continue;
+				}
+				backproc = true;
+				//newProc = (struct link*) malloc(sizeof(struct link));
+				//insert_link(newProc);
+			}
+			strcpy(input, tempProc);
+			break;
+		}
+
+		if(contiBool)
+		{
+			contiBool = false;
+			continue;
 		}
 
 		char* args[100];
 		int i = 0;
-		char* tempArg = strtok(input, " &\n");
+		char* tempArg = strtok(input, " \n");
 		int numOfArgs;
 
 		char* inputFrom = NULL;	
@@ -117,7 +155,7 @@ int main()
 	    {
 	        if(!strcmp(tempArg, ">"))
 	        {
-	            outputTo = strtok(NULL, " &\n");
+	            outputTo = strtok(NULL, " \n");
 	            if(outputTo == NULL)
 	            {
 	                std::cout << "Error! No output file specified!" << std::endl;
@@ -126,7 +164,7 @@ int main()
 	        }
 	        else if(!strcmp(tempArg, "<"))
 	        {
-	            inputFrom = strtok(NULL, " &\n");
+	            inputFrom = strtok(NULL, " \n");
 	            if(inputFrom == NULL)
 	            {
 	                std::cout << "Error! No input file specified!" << std::endl;
@@ -138,7 +176,7 @@ int main()
 	            args[i++] = tempArg;
 	        }
 	        
-	        tempArg = strtok(NULL, " &\n");
+	        tempArg = strtok(NULL, " \n");
 	    }
 
 		int inFile;
