@@ -96,7 +96,7 @@ int main()
 			}
 			backproc = true;
 			newProc = (struct link*) malloc(sizeof(struct link));
-			insert_link(newProc);
+			insert_link(newProc;
 			
 		}
 
