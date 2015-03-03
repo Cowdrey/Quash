@@ -17,6 +17,10 @@ struct link {
   int jobid;
 };
 
+
+struct link *ProcessHead = NULL;
+struct link *ProcessTail = ProcessHead;
+
 void insert_link(struct link *newlink) 
 {
   ProcessTail->next = newlink;
@@ -37,8 +41,6 @@ void remove_link(struct link *anchor)
 		delete anchor->next;
 	}
 }
-struct link *ProcessHead = NULL;
-struct link *ProcessTail = ProcessHead;
 
 bool isBackground(int thisPid)
 {
@@ -96,8 +98,8 @@ int main()
 				continue;
 			}
 			backproc = true;
-			newProc = (struct link*) alloc(sizeof(struct link));
-			insert_link
+			newProc = (struct link*) malloc(sizeof(struct link));
+			insert_link(newProc);
 			
 		}
 
