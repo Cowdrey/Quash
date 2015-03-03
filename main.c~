@@ -86,7 +86,7 @@ int main()
 		}
 
 		bool lastBackProc = false;
-
+		//Check if ends in &
 		if(input[strlen(input)-2] == '&')
 		{
 			lastBackProc = true;
