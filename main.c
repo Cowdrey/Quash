@@ -1,5 +1,5 @@
-
-#include <stdlib.h>
+#include<stdio.h>
+#include<stdlib.h>
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -15,11 +15,12 @@ struct link {
   struct link *next = NULL;
   int pid;
   int jobid;
+  char command[2097152];
 };
 
 
 struct link *ProcessHead = NULL;
-struct link *ProcessTail = ProcessHead;
+struct link *ProcessTail = NULL;
 int jobidvar = 0;
 
 void insert_link(struct link *newlink) 
@@ -46,22 +47,32 @@ struct link * get_link(int pidp)
     }
     return NULL;
 }
- 
-void remove_link(struct link *anchor) 
+
+void remove_link(struct link ** listP,int value)
 {
-	if(anchor->next == NULL)
-	{
-		delete anchor;
-		anchor = NULL;
-	}
-	else
-	{
-		anchor->next == anchor->next->next;
-		anchor->pid == anchor->next->pid;
-		anchor->jobid == anchor->next->jobid;
-		delete anchor->next;
-	}
+  struct link *currP, *prevP;
+
+  prevP = NULL;
+
+  for (currP = *listP;
+	currP != NULL;
+	prevP = currP, currP = currP->next) {
+
+    if (currP->pid == value) {  /* Found it. */
+      printf("[%ld] %ld finished %s\n",  currP->jobid, currP->pid,  currP->command);
+      if (prevP == NULL) {
+        *listP = currP->next;
+      } else {
+        prevP->next = currP->next;
+      }
+
+      free(currP);
+
+      return;
+    }
+  }
 }
+
 
 bool isBackground(int thisPid)
 {
@@ -74,6 +85,16 @@ bool isBackground(int thisPid)
     return false;
 }
 
+
+
+void printJobs() 
+{
+  	for(struct link *iter = ProcessHead; iter != NULL; iter = iter->next) {
+		std::cout << "[" << iter->jobid << "] "<< iter->pid <<
+		 " " << iter->command<<
+		  " \n";
+    }
+}
 int status;
 pid_t pid_1, pidbg;
 
@@ -82,10 +103,14 @@ bool backproc = false;
 
 int main()
 {
+	int fd1[2];
+	pipe(fd1);
+	int pidpipe;
     bool redirected = false;
     
     if(!isatty(STDIN_FILENO)) //A file has been redirected to stdin
     {
+    	
         redirected = true;
     }
     
@@ -98,42 +123,139 @@ int main()
             getcwd(testStr, PATH_MAX +1);
             std::cout << "[" << testStr << "]"<< "$ ";
         }
-
+		
         char input[2097152];
         
         if(fgets(input, 2097152, stdin) == NULL)
 		{
         	break;
 		}
+		
+		int isPipe = 0;
+		char* pPosition = strchr(input, '|');
+			std::cout<<pPosition;
+		if(pPosition != NULL)
+		{
+			isPipe = 1;
+			std::cout<<"LPLPLPL";
+		}
+		int kidpid;
+		int status;
+		while ((kidpid = waitpid(-1, &status, WNOHANG)) > 0)
+		{
+		 	 remove_link(&ProcessHead,kidpid);
+		}
 
+		bool lastBackProc = false;
+		
+		if(strlen(input)==1)continue;
+		
 		if(input[strlen(input)-2] == '&')
 		{
-			newProc = (struct link*) malloc(sizeof(struct link));
-			newProc->next = NULL;
-			newProc->pid = getpid();
-			newProc->jobid = jobidvar;
-			std::cout << "[" << newProc->jobid << "]"<< newProc->pid << " running in background\n";
-			insert_link(newProc);
-			jobidvar++;
-            pidbg = fork();
+			lastBackProc = true;
+		}
 
-			if(pidbg == 0)
+		bool contiBool = false;
+		char* tempProc;
+		if(isPipe!=0)
+		{
+			std::cout<<"LPLPLPL";
+			tempProc = strtok(input, "|\n");
+			std::cout<<tempProc;
+		    dup2(fd1[1],1);
+			pidpipe = fork();
+			if (pidpipe == 0) 
 			{
-			backproc = true;
+				close(fd1[0]);
+		        dup2(fd1[1],1);
+			}
+			else
+			{
+				tempProc = strtok(NULL, "|\n");
+				std::cout<<tempProc;
+				isPipe=2;
+				close(fd1[1]);
+				dup2(fd1[0], 0);
+			}
+		}
+		else
+		{
+			tempProc = strtok(input, "&\n");
+		}
+		
+		while(tempProc)
+		{
+			char* nextProc;
+			if(isPipe!=0)
+			{
+				strcpy(input, tempProc);
+				nextProc = tempProc;
+			}
+			else
+			{
+				nextProc = strtok(NULL, "&\n");
+			}
 
-			}
-        	else
+			if(nextProc == NULL)
 			{
-				redirected = false;
-				continue;
+				if(lastBackProc)
+				{
+					
+					pidbg = fork();
+
+					if(pidbg != 0)
+					{
+						newProc = (struct link*) malloc(sizeof(struct link));
+					    newProc->next = NULL;
+					    newProc->jobid = jobidvar;
+					    jobidvar++;
+					    newProc->pid = pidbg;
+			            insert_link(newProc); 
+						strcpy(newProc->command, tempProc);
+						std::cout << "[" << newProc->jobid << "]"<< newProc->pid << " running in background\n";
+						redirected = false;
+						lastBackProc = false;
+						contiBool = true;
+						break;
+					}
+					backproc = true;
+				}
 			}
+			else
+			{
+				pidbg = fork();
+
+				if(pidbg != 0)
+				{
+					newProc = (struct link*) malloc(sizeof(struct link));
+				    newProc->next = NULL;
+				    newProc->jobid = jobidvar;
+				    jobidvar++;
+				    newProc->pid = pidbg;
+		            insert_link(newProc);
+					strcpy(newProc->command, tempProc);
+					std::cout << "[" << newProc->jobid << "]"<< newProc->pid << " running in background\n";
+					tempProc = nextProc;
+					continue;
+				}
+				backproc = true;
+			}
+
+			strcpy(input, tempProc);
 			
-			
+
+			break;
+		}
+
+		if(contiBool)
+		{
+			contiBool = false;
+			continue;
 		}
 
 		char* args[100];
 		int i = 0;
-		char* tempArg = strtok(input, " &\n");
+		char* tempArg = strtok(input, " \n");
 		int numOfArgs;
 
 		char* inputFrom = NULL;	
@@ -145,7 +267,7 @@ int main()
 	    {
 	        if(!strcmp(tempArg, ">"))
 	        {
-	            outputTo = strtok(NULL, " &\n");
+	            outputTo = strtok(NULL, " \n");
 	            if(outputTo == NULL)
 	            {
 	                std::cout << "Error! No output file specified!" << std::endl;
@@ -154,7 +276,7 @@ int main()
 	        }
 	        else if(!strcmp(tempArg, "<"))
 	        {
-	            inputFrom = strtok(NULL, " &\n");
+	            inputFrom = strtok(NULL, " \n");
 	            if(inputFrom == NULL)
 	            {
 	                std::cout << "Error! No input file specified!" << std::endl;
@@ -166,7 +288,7 @@ int main()
 	            args[i++] = tempArg;
 	        }
 	        
-	        tempArg = strtok(NULL, " &\n");
+	        tempArg = strtok(NULL, " \n");
 	    }
 
 		int inFile;
@@ -225,7 +347,7 @@ int main()
         } 
         else if(!strcmp(args[0], "jobs"))
         {
-        
+        	printJobs();
         }       
         else if((!strcmp(args[0], "quit")) || (!strcmp(args[0], "exit")))
         {
@@ -287,13 +409,35 @@ int main()
             
             close(pipefd1[0]);
             close(pipefd1[1]);
-      
-        	if ((waitpid(pid_1, &status, 0)) == -1) {
-            	fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
-            	return EXIT_FAILURE;
+			close(fd1[1]);
+			close(fd1[0]);
+			if(isPipe > 1)
+			{
+				std::cout<<"YOLO1";
+				std::cout<<"YOLO2";
+			    if ((waitpid(pidpipe, &status, 0)) == -1) 
+				{
+					fprintf(stderr, "Process pipe encountered an error. ERROR%d", errno);
+					return EXIT_FAILURE;
+				}
+				if(isPipe = 2)
+				{
+					std::cout<<"YOLO3";
+					exit(0);
+				}
+				isPipe = 0;
+				std::cout<<"YOLO4";
         	} 
+			else
+			{
+				if ((waitpid(pid_1, &status, 0)) == -1) {
+					fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
+					return EXIT_FAILURE;
+				} 
+			}
+			
         }
-
+		
 		if(inFileUsed)
 		{
 			dup2(savedInput ,STDIN_FILENO);
@@ -314,13 +458,6 @@ int main()
 		{
 			args[j++] = NULL;
 		}
-	}
-	if(backproc)
-	{
-		int mypid= getpid();
-		struct link * proclink = get_link(mypid);
-		std::cout << "[" << proclink->jobid << "]"<< proclink->pid << " finished COMMAND\n";
-	
 	}
 	
     
