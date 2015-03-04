@@ -96,17 +96,15 @@ void printJobs()
     }
 }
 int status;
-pid_t pid_1, pidbg;
+pid_t pid_1, pidbg, pid_p;
 
-int pipefd1[2];
+int pipefd1[2], pipefdP[2];
 bool backproc = false;
 
 int main()
 {
-	int fd1[2];
-	pipe(fd1);
-	int pidpipe;
     bool redirected = false;
+	int savedInputPipe = dup(STDIN_FILENO);
     
     if(!isatty(STDIN_FILENO)) //A file has been redirected to stdin
     {
@@ -116,7 +114,11 @@ int main()
     
     while(!backproc)
     {
+		
+		bool pipeDetected = false;
+
     	struct link* newProc =NULL;
+
 		if(!redirected)
         {
             char testStr[PATH_MAX +1];
@@ -130,15 +132,7 @@ int main()
 		{
         	break;
 		}
-		
-		int isPipe = 0;
-		char* pPosition = strchr(input, '|');
-			std::cout<<pPosition;
-		if(pPosition != NULL)
-		{
-			isPipe = 1;
-			std::cout<<"LPLPLPL";
-		}
+
 		int kidpid;
 		int status;
 		while ((kidpid = waitpid(-1, &status, WNOHANG)) > 0)
@@ -148,7 +142,7 @@ int main()
 
 		bool lastBackProc = false;
 		
-		if(strlen(input)==1)continue;
+		if(strlen(input) == 1)continue;
 		
 		if(input[strlen(input)-2] == '&')
 		{
@@ -157,44 +151,12 @@ int main()
 
 		bool contiBool = false;
 		char* tempProc;
-		if(isPipe!=0)
-		{
-			std::cout<<"LPLPLPL";
-			tempProc = strtok(input, "|\n");
-			std::cout<<tempProc;
-		    dup2(fd1[1],1);
-			pidpipe = fork();
-			if (pidpipe == 0) 
-			{
-				close(fd1[0]);
-		        dup2(fd1[1],1);
-			}
-			else
-			{
-				tempProc = strtok(NULL, "|\n");
-				std::cout<<tempProc;
-				isPipe=2;
-				close(fd1[1]);
-				dup2(fd1[0], 0);
-			}
-		}
-		else
-		{
 			tempProc = strtok(input, "&\n");
-		}
 		
 		while(tempProc)
 		{
 			char* nextProc;
-			if(isPipe!=0)
-			{
-				strcpy(input, tempProc);
-				nextProc = tempProc;
-			}
-			else
-			{
 				nextProc = strtok(NULL, "&\n");
-			}
 
 			if(nextProc == NULL)
 			{
@@ -253,6 +215,36 @@ int main()
 			continue;
 		}
 
+		if(strchr(input, '|'))
+		{
+			pipeDetected = true;
+
+			char * tempCommand1 = strtok(input, "|");
+			char * tempCommand2 = strtok(NULL, "|");	
+
+			if(pipe(pipefdP) == -1)
+			{
+				perror("pipefdP");
+				exit(EXIT_FAILURE);
+			}
+
+			pid_p = fork();
+
+
+
+			if(pid_p == 0) //left command
+			{
+				close(pipefdP[0]);
+				strcpy(input, tempCommand1);
+				dup2(pipefdP[1], STDOUT_FILENO);
+			}
+			else
+			{
+				strcpy(input, tempCommand2);
+				dup2(pipefdP[0], STDIN_FILENO);
+			}
+		}
+
 		char* args[100];
 		int i = 0;
 		char* tempArg = strtok(input, " \n");
@@ -261,7 +253,7 @@ int main()
 		char* inputFrom = NULL;	
 		int savedInput = dup(STDIN_FILENO);
 		char* outputTo = NULL;
-		int savedOutput = dup(STDOUT_FILENO);
+		int savedOutput = dup(STDOUT_FILENO);	
     
 	    while(tempArg)
 	    {
@@ -324,6 +316,15 @@ int main()
 
         numOfArgs = (i -1);
         
+		if(pipeDetected && pid_p != 0)
+		{
+			if ((waitpid(pid_p, &status, 0)) == -1) 
+			{
+				fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
+				return EXIT_FAILURE;
+			} 
+		}
+		
         if(!strcmp(args[0],"cd"))
         {
             char *dirToEnter;
@@ -404,43 +405,23 @@ int main()
                     }
                 }
                 
-                exit(0);
+				exit(0);
             }
             
             close(pipefd1[0]);
             close(pipefd1[1]);
-			close(fd1[1]);
-			close(fd1[0]);
-			if(isPipe > 1)
+			if ((waitpid(pid_1, &status, 0)) == -1) 
 			{
-				std::cout<<"YOLO1";
-				std::cout<<"YOLO2";
-			    if ((waitpid(pidpipe, &status, 0)) == -1) 
-				{
-					fprintf(stderr, "Process pipe encountered an error. ERROR%d", errno);
-					return EXIT_FAILURE;
-				}
-				if(isPipe = 2)
-				{
-					std::cout<<"YOLO3";
-					exit(0);
-				}
-				isPipe = 0;
-				std::cout<<"YOLO4";
-        	} 
-			else
-			{
-				if ((waitpid(pid_1, &status, 0)) == -1) {
-					fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
-					return EXIT_FAILURE;
-				} 
-			}
+				fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
+				return EXIT_FAILURE;
+			} 
 			
         }
+
 		
 		if(inFileUsed)
 		{
-			dup2(savedInput ,STDIN_FILENO);
+			dup2(savedInput, STDIN_FILENO);
 			close(inFile);
 			inputFrom = NULL;
 		}
@@ -450,15 +431,30 @@ int main()
 			close(outFile);
 			outputTo = NULL;
 		}
-		
 		close(savedInput);
 		close(savedOutput);
+		
 		int j = 0;
 		while(args[j] != NULL)
 		{
 			args[j++] = NULL;
 		}
+
+		if(pipeDetected)
+		{
+			if(pid_p == 0)
+			{
+				close(pipefdP[1]);
+				exit(0);
+			}
+		
+			dup2(savedInputPipe, STDIN_FILENO);
+			close(pipefdP[0]);
+		}
+
+
+		close(savedInputPipe);
+
 	}
-	
     
 }
