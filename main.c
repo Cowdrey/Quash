@@ -104,7 +104,6 @@ bool backproc = false;
 int main()
 {
     bool redirected = false;
-	int savedInputPipe = dup(STDIN_FILENO);
     
     if(!isatty(STDIN_FILENO)) //A file has been redirected to stdin
     {
@@ -114,7 +113,8 @@ int main()
     
     while(!backproc)
     {
-		
+		int savedInputPipe = dup(STDIN_FILENO);
+
 		bool pipeDetected = false;
 
     	struct link* newProc =NULL;
@@ -156,7 +156,7 @@ int main()
 		while(tempProc)
 		{
 			char* nextProc;
-				nextProc = strtok(NULL, "&\n");
+			nextProc = strtok(NULL, "&\n");
 
 			if(nextProc == NULL)
 			{
@@ -240,6 +240,7 @@ int main()
 			}
 			else
 			{
+				close(pipefdP[1]);
 				strcpy(input, tempCommand2);
 				dup2(pipefdP[0], STDIN_FILENO);
 			}
@@ -445,6 +446,7 @@ int main()
 			if(pid_p == 0)
 			{
 				close(pipefdP[1]);
+				close(savedInputPipe);
 				exit(0);
 			}
 		

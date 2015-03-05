@@ -1,0 +1,10 @@
+all: quash
+
+quash: main.c
+	g++ main.c -g -o quash
+	g++ testProg1.c -g -o testProg1
+	g++ testProg2.c -g -o testProg2
+
+clean:
+	rm -f quash testProg1 testProg2 *~
+
