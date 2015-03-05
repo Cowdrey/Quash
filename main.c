@@ -175,7 +175,6 @@ int main()
 			            insert_link(newProc); 
 						strcpy(newProc->command, tempProc);
 						std::cout << "[" << newProc->jobid << "]"<< newProc->pid << " running in background\n";
-						redirected = false;
 						lastBackProc = false;
 						contiBool = true;
 						break;
@@ -377,7 +376,7 @@ int main()
                 }
                 else                               //Not in cur directory
                 {
-                    int exit = 0;
+                   	bool error = true;
                     char copyEnv[2097152];
                     
                     strcpy(copyEnv, getenv("PATH"));
@@ -394,13 +393,13 @@ int main()
                         if(access(tempExec, F_OK) == 0) //Found correct Path Directory
                         {
                             execvpe(args[0], args, environ);
-                            exit = 1;
+                            error = false;
                             break;
                         }
                         
                         tempPath = strtok(NULL, ":");
                     }
-                    if(exit == 0)
+                    if(error)
                     {
                         std::cout << "Error! Executable " << args[0] << " is not in current directory or path." << std::endl;
                     }
